@@ -1,0 +1,19 @@
+2gif
+====
+
+2gif is a simple application to convert videos to gif
+
+Download
+--------
+
+Download the [package][dlp] *or* checkout the source:
+
+    $ git clone https://github.com/atareao/2gif
+
+
+Installation
+------------
+
+    $ sudo add-apt-repositoy ppa:atareao/atareao
+    $ sudo apt-get update
+    $ sudo apt-get install 2gif

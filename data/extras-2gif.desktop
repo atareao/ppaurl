@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name = 2gif
+GenericName = 2gif
+Comment = An application to convert videos to gif
+Exec = /opt/extras.ubuntu.com/2gif/bin/2gif.py
+Icon = /opt/extras.ubuntu.com/2gif/share/icons/2gif.png
+Type = Application
+Terminal = false
+StartupNotify = true
+Encoding = UTF-8
+Categories = Utility;
+X-Ubuntu-Gettext-Domain = 2gif
+MimeType = video/mpeg;video/mpg;video/x-mpg;video/mpeg2;application/x-pn-mpg;video/x-mpeg;video/x-mpeg2a;audio/mpeg;audio/x-mpeg;image/mpg;

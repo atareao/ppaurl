@@ -1,0 +1,15 @@
+Source: 2gif
+Section: utils
+Priority: extra
+Maintainer: Lorenzo Carbonell Cerezo <lorenzo.carbonell.cerezo@gmail.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.4
+Homepage: http://www.atareao.es
+
+Package: 2gif
+Architecture: all
+Depends: ${misc:Depends}, 
+	ffmpeg
+Description: An application to convert video to gif
+ 2gif is a simple application that is able to convert
+ from mpg video to gif
