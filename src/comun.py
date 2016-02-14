@@ -35,7 +35,7 @@ import gettext
 ######################################
 
 def is_package():
-	return __file__.find('src') < 0
+    return __file__.find('src') < 0
 
 ######################################
 
@@ -48,32 +48,32 @@ CONFIG_DIR = os.path.join(os.path.expanduser('~'),'.config')
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
 # check if running from source
 if is_package():
-	ROOTDIR = '/opt/extras.ubuntu.com/2gif'
-	APPDIR = os.path.join(ROOTDIR, 'share/2gif')
-	LANGDIR = os.path.join(ROOTDIR, 'locale-langpack')
-	BINDIR = os.path.join(ROOTDIR, 'bin')
-	ICONDIR = os.path.join(ROOTDIR, 'share/icons')
-	PIXMAPDIR = os.path.join(ROOTDIR, 'share/pixmaps')
+    ROOTDIR = '/opt/extras.ubuntu.com/2gif'
+    APPDIR = os.path.join(ROOTDIR, 'share/2gif')
+    LANGDIR = os.path.join(ROOTDIR, 'locale-langpack')
+    BINDIR = os.path.join(ROOTDIR, 'bin')
+    ICONDIR = os.path.join(ROOTDIR, 'share/icons')
+    PIXMAPDIR = os.path.join(ROOTDIR, 'share/pixmaps')
 else:
-	VERSION = VERSION + '-src'
-	ROOTDIR = os.path.dirname(__file__)
-	LANGDIR = os.path.normpath(os.path.join(ROOTDIR, '../template1'))
-	APPDIR = ROOTDIR
-	ICONDIR = os.path.normpath(os.path.join(ROOTDIR, '../data'))
-	PIXMAPDIR = ICONDIR
+    VERSION = VERSION + '-src'
+    ROOTDIR = os.path.dirname(__file__)
+    LANGDIR = os.path.normpath(os.path.join(ROOTDIR, '../template1'))
+    APPDIR = ROOTDIR
+    ICONDIR = os.path.normpath(os.path.join(ROOTDIR, '../data'))
+    PIXMAPDIR = ICONDIR
 #
 ICON = os.path.join(ICONDIR,'2gif.png')
 BACKGROUND = os.path.join(PIXMAPDIR,'background.svg')
 BACKGROUND_NONE = os.path.join(PIXMAPDIR,'background_none.svg')
 
 try:
-	current_locale, encoding = locale.getdefaultlocale()
-	language = gettext.translation(APP, LANGDIR, [current_locale])
-	language.install()
-	if sys.version_info[0] == 3:
-		_ = language.gettext
-	else:
-		_ = language.ugettext
+    current_locale, encoding = locale.getdefaultlocale()
+    language = gettext.translation(APP, LANGDIR, [current_locale])
+    language.install()
+    if sys.version_info[0] == 3:
+        _ = language.gettext
+    else:
+        _ = language.ugettext
 except Exception as e:
-	print(e)
-	_ = str
+    print(e)
+    _ = str
