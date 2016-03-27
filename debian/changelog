@@ -1,8 +1,17 @@
-2gif (0.0.1-0extras15.10.1) wily; urgency=medium
+2gif (0.1.0-0extras15.10.0) wily; urgency=medium
+
+  * Changed from ffmpeg to avconv
+  * Added more movie type (matroska and more)
+  * Added a menu to add movies from it
+  * Added a help menu
+
+ -- Lorenzo Carbonell <lorenzo.carbonell.cerezo@gmail.com>  Sun, 27 Mar 2016 10:33:21 +0200
+
+2gif (0.0.1-0extras15.10.2) wily; urgency=medium
 
   * Fixed bugs
 
- -- Lorenzo Carbonell <lorenzo.carbonell.cerezo@gmail.com>  Sun, 03 Jan 2016 19:40:42 +0100
+ -- Lorenzo Carbonell <lorenzo.carbonell.cerezo@gmail.com>  Sun, 14 Feb 2016 23:39:36 +0100
 
 2gif (0.0.1-0extras15.10.0) wily; urgency=medium
 

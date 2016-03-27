@@ -1,6 +1,7 @@
 src/2gif.py /opt/extras.ubuntu.com/2gif/bin
 src/comun.py /opt/extras.ubuntu.com/2gif/bin
-data/2gif.png /opt/extras.ubuntu.com/2gif/share/icons
-data/background.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
-data/background_none.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
+data/icons/2gif.png /opt/extras.ubuntu.com/2gif/share/icons
+data/icons/background.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
+data/icons/background_none.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
+data/social/*.svg /opt/extras.ubuntu.com/2gif/share/icons
 data/extras-2gif.desktop /usr/share/applications

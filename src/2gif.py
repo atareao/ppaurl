@@ -1,9 +1,7 @@
-#! /usr/bin/python3
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-#
 # 2gif.py
-#
 #
 # Copyright (C) 2015-2016 Lorenzo Carbonell
 # lorenzo.carbonell.cerezo@gmail.com
@@ -22,8 +20,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GObject
+from gi.repository import GdkPixbuf
+from os.path import expanduser
+import webbrowser
 import tempfile
 import re
 import comun
@@ -36,9 +38,11 @@ import urllib.request
 import shutil
 import threading
 
+_ = str
+
 SUPPORTED_MIMES = ['video/x-ms-asf', 'video/x-msvideo', 'video/x-flv',
                    'video/quicktime', 'video/mp4', 'video/mpeg',
-                   'video/x-ms-wmv']
+                   'video/x-ms-wmv', 'video/ogg', 'video/x-matroska']
 
 GObject.threads_init()
 
@@ -51,18 +55,18 @@ def ejecuta(comando):
     return valor
 
 
-def get_thumbnail_for_video_thread(filename, start_position, output,
-                                   output_image):
-    t = threading.Thread(target=get_thumbnail_for_video, args=(filename,
-                                                               start_position,
-                                                               output,
-                                                               output_image))
+def get_thumb_for_video(filename, start_position, output,
+                        output_image):
+    t = threading.Thread(target=_get_thumbnail_for_video, args=(filename,
+                                                                start_position,
+                                                                output,
+                                                                output_image))
     t.daemon = True
     t.start()
 
 
-def get_thumbnail_for_video(filename, start_position, output, update_image):
-    ejecuta('ffmpeg -i "%s" -f image2 -ss %s -vf scale=-1:300 -vframes 1 %s -y'
+def _get_thumbnail_for_video(filename, start_position, output, update_image):
+    ejecuta('avconv -i "%s" -f image2 -ss %s -vf scale=-1:300 -vframes 1 %s -y'
             % (filename, start_position, output))
     update_image.set_from_file(output)
 
@@ -70,16 +74,30 @@ def get_thumbnail_for_video(filename, start_position, output, update_image):
 def get_seconds(value):
     values = value.split(':')
     return float(values[0]) * 3600.0 + float(values[1]) * 60.0 +\
-           float(values[2])
+        float(values[2])
 
 
 def getVideoDetails(filepath):
     tmpf = tempfile.NamedTemporaryFile()
-    os.system("ffmpeg -i \"%s\" 2> %s" % (filepath, tmpf.name))
+    os.system("avconv -i \"%s\" 2> %s" % (filepath, tmpf.name))
     lines = tmpf.readlines()
     tmpf.close()
     metadata = {}
+    metadata['video'] = {}
+    metadata['audio'] = {}
     print(lines)
+    metadata['duration'] = 0
+    metadata['duration_in_seconds'] = 0
+    metadata['bitrate'] = 0
+    metadata['video']['resolution'] = 0
+    metadata['video']['width'], metadata['video']['height'] = 0, 0
+    metadata['video']['resolution'] = 0
+    metadata['video']['bitrate'] = 0
+    metadata['video']['fps'] = 0
+    metadata['fps'] = 0
+    metadata['audio']['codec'] = 0
+    metadata['audio']['frequency'] = 0
+    metadata['audio']['bitrate'] = 0
     for l in lines:
         l = l.decode()
         print(l)
@@ -90,46 +108,54 @@ def getVideoDetails(filepath):
             metadata['duration_in_seconds'] = get_seconds(metadata['duration'])
             metadata['bitrate'] = re.search("bitrate: (\d+ kb/s)", l).\
                 group(0).split(':')[1].strip()
-        if l.startswith('Stream #0:0'):
+        if l.startswith('Stream #') and l.split(': ') == 'Video':
             metadata['video'] = {}
             try:
                 metadata['video']['codec'], metadata['video']['profile'] = \
                     [e.strip(' , ()') for e in re.search(
                         'Video: (.*? \(.*?\)),? ', l).group(0).split(':')[1].
                         split('(')]
+                metadata['video']['resolution'] = re.search('([1-9]\d+x\d+)',
+                                                            l).group(1)
+                metadata['video']['width'], metadata['video']['height'] =\
+                    metadata['video']['resolution'].split('x')
+                metadata['video']['width'] = float(metadata['video']['width'])
+                metadata['video']['height'] = \
+                    float(metadata['video']['height'])
+                metadata['video']['bitrate'] = re.search('(\d+ kb/s)',
+                                                         l).group(1)
+                metadata['video']['fps'] = re.search('(\d+ fps)', l).group(1)
+                metadata['fps'] = int(metadata['video']['fps'].split(' ')[0])
             except Exception:
                 pass
-            metadata['video']['resolution'] = re.search('([1-9]\d+x\d+)', l).\
-                group(1)
-            metadata['video']['width'], metadata['video']['height'] =\
-            metadata['video']['resolution'].split('x')
-            metadata['video']['width'] = float(metadata['video']['width'])
-            metadata['video']['height'] = float(metadata['video']['height'])
-            metadata['video']['bitrate'] = re.search('(\d+ kb/s)', l).group(1)
-            metadata['video']['fps'] = re.search('(\d+ fps)', l).group(1)
-            metadata['fps'] = int(metadata['video']['fps'].split(' ')[0])
-        if l.startswith('Stream #0:1'):
-            metadata['audio'] = {}
-            metadata['audio']['codec'] = re.search('Audio: (.*?) ', l).group(1)
-            metadata['audio']['frequency'] = re.search(
-                ', (.*? Hz),', l).group(1)
-            metadata['audio']['bitrate'] = re.search(
-                ', (\d+ kb/s)', l).group(1)
+        if l.startswith('Stream #') and l.split(': ') == 'Audio':
+            try:
+                metadata['audio'] = {}
+                metadata['audio']['codec'] = re.search('Audio: (.*?) ',
+                                                       l).group(1)
+                metadata['audio']['frequency'] = re.search(', (.*? Hz),',
+                                                           l).group(1)
+                metadata['audio']['bitrate'] = re.search(', (\d+ kb/s)',
+                                                         l).group(1)
+            except Exception:
+                pass
     return metadata
 
 
-class Convert2WebpDialog(Gtk.Dialog):
+class Convert2GifDialog(Gtk.Window):
     def __init__(self):
         self.code = None
-        Gtk.Dialog.__init__(self)
+        Gtk.Window.__init__(self)
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
         self.set_title(comun.APPNAME)
         self.set_icon_from_file(comun.ICON)
         self.set_default_size(300, 300)
         self.connect('destroy', self.on_destroy)
         #
+        self.vbox = Gtk.VBox(False, 2)
+        self.add(self.vbox)
         table = Gtk.Table(4, 2, False)
-        self.get_content_area().add(table)
+        self.vbox.pack_end(table, False, False, 0)
         self.begin = Gtk.Image.new_from_file(comun.BACKGROUND)
         self.begin.set_tooltip_text('Drag and drop video here')
         table.attach(self.begin, 0, 1, 0, 1, xpadding=5, ypadding=5)
@@ -204,7 +230,182 @@ class Convert2WebpDialog(Gtk.Dialog):
             shutil.rmtree(self.tmp_folder)
             os.makedirs(self.tmp_folder)
         #
+        self.init_menu()
+        #
         self.show_all()
+
+    def load_file_dialog(self):
+        filename = None
+        dialog = Gtk.FileChooserDialog("Open file",
+                                       self,
+                                       Gtk.FileChooserAction.OPEN,
+                                       (Gtk.STOCK_CANCEL,
+                                        Gtk.ResponseType.CANCEL,
+                                        Gtk.STOCK_OPEN,
+                                        Gtk.ResponseType.OK))
+        dialog.set_current_folder(expanduser("~"))
+        filter_video = Gtk.FileFilter()
+        filter_video.set_name(_('Video files'))
+        for amimetype in SUPPORTED_MIMES:
+            filter_video.add_mime_type(amimetype)
+        dialog.add_filter(filter_video)
+        response = dialog.run()
+
+        if response == Gtk.ResponseType.OK:
+            filename = dialog.get_filename()
+        elif response == Gtk.ResponseType.CANCEL:
+            pass
+        dialog.destroy()
+        return filename
+
+    def init_menu(self):
+        menubar = Gtk.MenuBar()
+        self.vbox.pack_start(menubar, False, False, 0)
+        accel_group = Gtk.AccelGroup()
+        self.add_accel_group(accel_group)
+        self.filemenu = Gtk.Menu.new()
+        self.filem = Gtk.MenuItem.new_with_label(_('File'))
+        self.filem.set_submenu(self.filemenu)
+        #
+        self.menus = {}
+        #
+        self.menus['open-file'] = Gtk.ImageMenuItem.new_with_label(_(
+            'Open file'))
+        self.menus['open-file'].connect('activate',
+                                        self.on_toolbar_clicked,
+                                        'open-file')
+        self.menus['open-file'].add_accelerator('activate',
+                                                accel_group,
+                                                ord('O'),
+                                                Gdk.ModifierType.CONTROL_MASK,
+                                                Gtk.AccelFlags.VISIBLE)
+        self.filemenu.append(self.menus['open-file'])
+        #
+        self.filemenu.append(Gtk.SeparatorMenuItem())
+        menubar.append(self.filem)
+        #
+        self.filehelp = Gtk.Menu.new()
+        self.fileh = Gtk.MenuItem.new_with_label(_('Help'))
+        self.fileh.set_submenu(self.get_help_menu())
+        #
+        menubar.append(self.fileh)
+
+    def get_help_menu(self):
+        help_menu = Gtk.Menu()
+        #
+        homepage_item = Gtk.MenuItem(label=_(
+            'Homepage'))
+        homepage_item.connect('activate',
+                              lambda x: webbrowser.open(
+                                'http://www.atareao.es/'))
+        homepage_item.show()
+        help_menu.append(homepage_item)
+        #
+        help_item = Gtk.MenuItem(label=_(
+            'Get help online...'))
+        help_item.connect('activate',
+                          lambda x: webbrowser.open(
+                            'https://answers.launchpad.net/utext'))
+        help_item.show()
+        help_menu.append(help_item)
+        #
+        translate_item = Gtk.MenuItem(label=_(
+            'Translate this application...'))
+        translate_item.connect('activate',
+                               lambda x: webbrowser.open(
+                                'https://translations.launchpad.net/utext'))
+        translate_item.show()
+        help_menu.append(translate_item)
+        #
+        bug_item = Gtk.MenuItem(label=_(
+            'Report a bug...'))
+        bug_item.connect('activate',
+                         lambda x: webbrowser.open(
+                            'https://bufs.launchpad.net/utext'))
+        bug_item.show()
+        help_menu.append(bug_item)
+        #
+        separator = Gtk.SeparatorMenuItem()
+        separator.show()
+        help_menu.append(separator)
+        #
+        twitter_item = Gtk.MenuItem(label=_(
+            'Follow me in Twitter'))
+        twitter_item.connect('activate',
+                             lambda x: webbrowser.open(
+                                'https://twitter.com/atareao'))
+        twitter_item.show()
+        help_menu.append(twitter_item)
+        #
+        googleplus_item = Gtk.MenuItem(label=_(
+            'Follow me in Google+'))
+        googleplus_item.connect('activate',
+                                lambda x: webbrowser.open(
+                                    'https://plus.google.com/\
+118214486317320563625/posts'))
+        googleplus_item.show()
+        help_menu.append(googleplus_item)
+        #
+        facebook_item = Gtk.MenuItem(label=_(
+            'Follow me in Facebook'))
+        facebook_item.connect('activate',
+                              lambda x: webbrowser.open(
+                                'http://www.facebook.com/elatareao'))
+        facebook_item.show()
+        help_menu.append(facebook_item)
+        #
+        about_item = Gtk.MenuItem.new_with_label(_('About'))
+        about_item.connect('activate', self.on_about_activate)
+        about_item.show()
+        separator = Gtk.SeparatorMenuItem()
+        separator.show()
+        help_menu.append(separator)
+        help_menu.append(about_item)
+        #
+        help_menu.show()
+        return help_menu
+
+    def on_about_activate(self, widget):
+        """Create and populate the about dialog."""
+        about_dialog = Gtk.AboutDialog(parent=self)
+        about_dialog.set_name(comun.APPNAME)
+        about_dialog.set_version(comun.VERSION)
+        about_dialog.set_copyright(
+            'Copyrignt (c) 2015-2016\nLorenzo Carbonell Cerezo')
+        about_dialog.set_comments(_('An app to convert video to gif'))
+        about_dialog.set_license('''
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <http://www.gnu.org/licenses/>.
+''')
+        about_dialog.set_website('http://www.atareao.es')
+        about_dialog.set_website_label('http://www.atareao.es')
+        about_dialog.set_authors([
+            'Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>'])
+        about_dialog.set_documenters([
+            'Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>'])
+        about_dialog.set_translator_credits('''
+Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
+''')
+        about_dialog.set_icon(GdkPixbuf.Pixbuf.new_from_file(comun.ICON))
+        about_dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file(comun.ICON))
+        about_dialog.set_program_name(comun.APPNAME)
+        about_dialog.run()
+        about_dialog.destroy()
+
+    def on_toolbar_clicked(self, widget, option):
+        if option == 'open-file':
+            filename = self.load_file_dialog()
+            if filename is not None:
+                self.process_file(filename)
 
     def on_button_output_clicked(self, widget):
         dialog = Gtk.FileChooserDialog('Select output file',
@@ -244,14 +445,17 @@ class Convert2WebpDialog(Gtk.Dialog):
             self.spinbutton_end.set_value(min_value)
         else:
             self.spinbutton_end.set_adjustment(
-                Gtk.Adjustment(self.spinbutton_end.get_value(), min_value, max_value, 1, 10, 0))
+                Gtk.Adjustment(self.spinbutton_end.get_value(),
+                               min_value, max_value, 1, 10, 0))
         temporal_image = os.path.join(self.tmp_folder, 'begin.png')
         if os.path.exists(temporal_image):
             os.remove(temporal_image)
         if self.first_image_thread is not None:
             self.first_image_thread.kill()
-        self.first_image_thread = get_thumbnail_for_video_thread(
-            self.filename, min_value, temporal_image, self.begin)
+        self.first_image_thread = get_thumb_for_video(self.filename,
+                                                      min_value,
+                                                      temporal_image,
+                                                      self.begin)
 
     def on_spinbutton_end_value_changed(self, widget):
         value = self.spinbutton_end.get_value()
@@ -260,8 +464,10 @@ class Convert2WebpDialog(Gtk.Dialog):
             os.remove(temporal_image)
         if self.last_image_thread is not None:
             self.last_image_thread.kill()
-        self.last_image_thread = get_thumbnail_for_video_thread(
-            self.filename, value, temporal_image, self.end)
+        self.last_image_thread = get_thumb_for_video(self.filename,
+                                                     value,
+                                                     temporal_image,
+                                                     self.end)
 
     def on_button_ok_clicked(self, widget):
         start_position = self.spinbutton_begin.get_value()
@@ -272,10 +478,11 @@ class Convert2WebpDialog(Gtk.Dialog):
             os.remove(output_file)
         if os.path.exists(output_file + '.tmp'):
             os.remove(output_file + '.tmp')
-        if os.path.exists(self.filename) and duration > 0:
-            ejecuta('ffmpeg -t %s -ss %s -i "%s" -r 1/1 "%s"'%
-                   (duration, start_position, self.filename,
-                    os.path.join(self.tmp_folder, 'out%04d.png')))
+        if self.filename is not None and\
+           os.path.exists(self.filename) and duration > 0:
+            ejecuta('avconv -t %s -ss %s -i "%s" -r 1/1"%s"' %
+                    (duration, start_position, self.filename,
+                     os.path.join(self.tmp_folder, 'out%04d.png')))
             ejecuta('convert -delay 1x1 -loop 0 "%s" "%s"' %
                     (os.path.join(self.tmp_folder, 'out*.png'),
                      os.path.join(self.tmp_folder, 'temporal.gif')))
@@ -292,65 +499,59 @@ class Convert2WebpDialog(Gtk.Dialog):
     def drag_begin(self, widget, context):
         pass
 
-    def drag_data_get_data(self, treeview, context, selection, target_id, etime):
+    def drag_data_get_data(self, treeview, context, selection, target_id,
+                           etime):
         pass
 
-    def drag_data_received(self, widget, drag_context, x, y, selection_data, info, timestamp):
-        for filename in selection_data.get_uris():
+    def drag_data_received(self, widget, drag_context, x, y, selection_data,
+                           info, timestamp):
+        if len(selection_data.get_uris()) > 0:
+            filename = selection_data.get_uris()[0]
             if len(filename) > 8:
                 filename = urllib.request.url2pathname(filename)
-                self.filename = filename[7:]
-                mime = mimetypes.guess_type(self.filename)
-                if os.path.exists(self.filename):
-                    mime = mimetypes.guess_type(self.filename)[0]
-                    if mime in SUPPORTED_MIMES:
-                        if self.first_image_thread is not None:
-                            self.first_image_thread.kill()
-                        if self.last_image_thread is not None:
-                            self.last_image_thread.kill()
-                        metadata = getVideoDetails(self.filename)
-                        self.fps = metadata['fps']
-                        self.duration_in_seconds = int(
-                            metadata['duration_in_seconds'])
-                        self.spinbutton_begin.set_adjustment(
-                            Gtk.Adjustment(0, 0, self.duration_in_seconds,
-                                           1, 10, 0))
-                        self.spinbutton_begin.set_value(0)
-                        self.spinbutton_begin.set_editable(True)
-                        self.spinbutton_end.set_adjustment(
-                            Gtk.Adjustment(self.duration_in_seconds, 0,
-                                           self.duration_in_seconds, 1,
-                                           10, 0))
-                        self.spinbutton_end.set_value(self.duration_in_seconds)
-                        self.spinbutton_end.set_editable(True)
-                        temporal_begin_image = os.path.join(
-                            self.tmp_folder, 'begin.png')
-                        temporal_end_image = os.path.join(
-                            self.tmp_folder, 'end.png')
-
-                        # filename,start_position,output, update_image):
-                        self.first_image_thread = \
-                        get_thumbnail_for_video_thread(self.filename, 0,
-                                                       temporal_begin_image,
-                                                       self.begin)
-                        self.last_image_thread = \
-                                                get_thumbnail_for_video_thread(
-                                                self.filename,
-                                                self.duration_in_seconds - 1,
-                                                temporal_end_image,
-                                                self.end)
-                        destinationfilename, originalextension = os.path.\
-                                                                 splitext(
-                                                                 filename)
-                        destinationfilename += '.webp'
-                        quality = 80
-                        '''
-                        t = threading.Thread(target=ejecuta,args=('cwebp -q %s %s -o %s'%(quality,filename,destinationfilename),))
-                        t.daemon = True
-                        t.start()
-                        '''
+                self.process_file(filename[7:])
         return True
 
+    def process_file(self, filename):
+        self.filename = filename
+        mime = mimetypes.guess_type(self.filename)
+        if os.path.exists(self.filename):
+            mime = mimetypes.guess_type(self.filename)[0]
+            if mime in SUPPORTED_MIMES:
+                if self.first_image_thread is not None:
+                    self.first_image_thread.kill()
+                if self.last_image_thread is not None:
+                    self.last_image_thread.kill()
+                metadata = getVideoDetails(self.filename)
+                self.fps = metadata['fps']
+                self.duration_in_seconds = int(
+                    metadata['duration_in_seconds'])
+                self.spinbutton_begin.set_adjustment(
+                    Gtk.Adjustment(0, 0, self.duration_in_seconds,
+                                   1, 10, 0))
+                self.spinbutton_begin.set_value(0)
+                self.spinbutton_begin.set_editable(True)
+                self.spinbutton_end.set_adjustment(
+                    Gtk.Adjustment(self.duration_in_seconds, 0,
+                                   self.duration_in_seconds, 1,
+                                   10, 0))
+                self.spinbutton_end.set_value(self.duration_in_seconds)
+                self.spinbutton_end.set_editable(True)
+                temp_begin_image = os.path.join(self.tmp_folder, 'begin.png')
+                temp_end_image = os.path.join(self.tmp_folder, 'end.png')
+                self.first_image_thread = \
+                    get_thumb_for_video(self.filename,
+                                        0,
+                                        temp_begin_image,
+                                        self.begin)
+                self.last_image_thread = \
+                    get_thumb_for_video(self.filename,
+                                        self.duration_in_seconds - 1,
+                                        temp_end_image,
+                                        self.end)
+                destinationfilename, originalextension = os.path.\
+                    splitext(filename)
+
 if __name__ == '__main__':
-    ld = Convert2WebpDialog()
-    ld.run()
+    ld = Convert2GifDialog()
+    Gtk.main()

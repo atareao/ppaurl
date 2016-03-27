@@ -8,8 +8,11 @@ Homepage: http://www.atareao.es
 
 Package: 2gif
 Architecture: all
-Depends: ${misc:Depends}, 
-	ffmpeg
+Depends: ${misc:Depends},
+    python3,
+    python3-gi,
+    gir1.2-gtk-3.0,
+    libav-tools
 Description: An application to convert video to gif
  2gif is a simple application that is able to convert
  from mpg video to gif
