@@ -12,6 +12,8 @@ Depends: ${misc:Depends},
     python3,
     python3-gi,
     gir1.2-gtk-3.0,
+    gir1.2-gstreamer-1.0,
+    gir1.2-gst-plugins-base-1.0,
     libav-tools
 Description: An application to convert video to gif
  2gif is a simple application that is able to convert

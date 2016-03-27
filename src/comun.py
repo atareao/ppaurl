@@ -21,26 +21,22 @@
 #
 #
 #
-__author__ = 'Lorenzo Carbonell <lorenzo.carbonell.cerezo@gmail.com>'
-__date__ ='$07/01/2012'
-__copyright__ = 'Copyright (c) 2011 Lorenzo Carbonell'
-__license__ = 'GPLV3'
-__url__ = 'http://www.atareao.es'
-__version__ = '0.0.1.0'
 
 import os
 import locale
 import gettext
+import sys
 
-######################################
 
 def is_package():
     return __file__.find('src') < 0
 
-######################################
 
+PARAMS = {'first-time': True,
+          'version': '',
+          'sample-time': 5
+          }
 
-VERSION = __version__
 APP = '2gif'
 APPNAME = '2gif'
 APP_CONF = APP + '.conf'
@@ -55,18 +51,30 @@ if is_package():
     ICONDIR = os.path.join(ROOTDIR, 'share/icons')
     PIXMAPDIR = os.path.join(ROOTDIR, 'share/pixmaps')
     SOCIALDIR = ICONDIR
+    CHANGELOG = os.path.join(APPDIR, 'changelog')
 else:
-    VERSION = VERSION + '-src'
     ROOTDIR = os.path.dirname(__file__)
     LANGDIR = os.path.normpath(os.path.join(ROOTDIR, '../template1'))
     APPDIR = ROOTDIR
     ICONDIR = os.path.normpath(os.path.join(ROOTDIR, '../data/icons'))
     PIXMAPDIR = ICONDIR
     SOCIALDIR = os.path.normpath(os.path.join(ROOTDIR, '../data/social'))
+    DEBIANDIR = os.path.normpath(os.path.join(ROOTDIR, '../debian'))
+    CHANGELOG = os.path.join(DEBIANDIR, 'changelog')
 #
-ICON = os.path.join(ICONDIR,'2gif.png')
-BACKGROUND = os.path.join(PIXMAPDIR,'background.svg')
-BACKGROUND_NONE = os.path.join(PIXMAPDIR,'background_none.svg')
+ICON = os.path.join(ICONDIR, '2gif.png')
+BACKGROUND = os.path.join(PIXMAPDIR, 'background.svg')
+BACKGROUND_NONE = os.path.join(PIXMAPDIR, 'background_none.svg')
+#
+f = open(CHANGELOG, 'r')
+line = f.readline()
+f.close()
+pos = line.find('(')
+posf = line.find(')', pos)
+VERSION = line[pos + 1:posf].strip()
+if not is_package():
+    VERSION = VERSION + '-src'
+####
 
 try:
     current_locale, encoding = locale.getdefaultlocale()

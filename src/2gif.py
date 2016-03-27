@@ -24,7 +24,6 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
-from os.path import expanduser
 import webbrowser
 import tempfile
 import re
@@ -37,6 +36,9 @@ import urllib
 import urllib.request
 import shutil
 import threading
+from videosnapshooter import VideoSnapShooter
+import ctypes
+
 
 _ = str
 
@@ -47,6 +49,28 @@ SUPPORTED_MIMES = ['video/x-ms-asf', 'video/x-msvideo', 'video/x-flv',
 GObject.threads_init()
 
 
+def terminate_thread(thread):
+    """Terminates a python thread from another thread.
+
+    :param thread: a threading.Thread instance
+    """
+    if thread is None or not thread.isAlive():
+        thread = None
+        return
+
+    exc = ctypes.py_object(SystemExit)
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+        ctypes.c_long(thread.ident), exc)
+    thread = None
+    if res == 0:
+        raise ValueError("nonexistent thread id")
+    elif res > 1:
+        # """if it returns a number greater than one, you're in trouble,
+        # and you should call it again with exc=NULL to revert the effect"""
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
+        raise SystemError("PyThreadState_SetAsyncExc failed")
+
+
 def ejecuta(comando):
     print(comando)
     args = shlex.split(comando)
@@ -55,17 +79,28 @@ def ejecuta(comando):
     return valor
 
 
-def get_thumb_for_video(filename, start_position, output,
+def get_thumb_for_video(vss, start_position, output,
                         output_image):
-    t = threading.Thread(target=_get_thumbnail_for_video, args=(filename,
+    t = threading.Thread(target=_get_thumbnail_for_video, args=(vss,
                                                                 start_position,
                                                                 output,
                                                                 output_image))
     t.daemon = True
     t.start()
+    return t
 
 
-def _get_thumbnail_for_video(filename, start_position, output, update_image):
+def _get_thumbnail_for_video(vss, start_position, output, update_image):
+    print('a')
+    vss.snapshoot(output, start_position)
+    print('b')
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(output, 300, 300)
+    print('c')
+    update_image.set_from_pixbuf(pixbuf)
+    print('d')
+
+
+def _get_thumbnail_for_video2(filename, start_position, output, update_image):
     ejecuta('avconv -i "%s" -f image2 -ss %s -vf scale=-1:300 -vframes 1 %s -y'
             % (filename, start_position, output))
     update_image.set_from_file(output)
@@ -183,8 +218,6 @@ class Convert2GifDialog(Gtk.Window):
         self.spinbutton_begin = Gtk.SpinButton()
         self.spinbutton_begin.set_tooltip_text('First second')
         self.spinbutton_begin.set_editable(False)
-        self.spinbutton_begin.connect('value-changed',
-                                      self.on_spinbutton_begin_value_changed)
         table.attach(self.spinbutton_begin, 0, 1, 1, 2,
                      xpadding=5,
                      ypadding=5,
@@ -192,8 +225,6 @@ class Convert2GifDialog(Gtk.Window):
         self.spinbutton_end = Gtk.SpinButton()
         self.spinbutton_end.set_tooltip_text('Last second')
         self.spinbutton_end.set_editable(False)
-        self.spinbutton_end.connect('value-changed',
-                                    self.on_spinbutton_end_value_changed)
         table.attach(self.spinbutton_end, 1, 2, 1, 2,
                      xpadding=5,
                      ypadding=5,
@@ -232,6 +263,10 @@ class Convert2GifDialog(Gtk.Window):
         #
         self.init_menu()
         #
+        self.spinbutton_begin.connect('value-changed',
+                                      self.on_spinbutton_begin_value_changed)
+        self.spinbutton_end.connect('value-changed',
+                                    self.on_spinbutton_end_value_changed)
         self.show_all()
 
     def load_file_dialog(self):
@@ -243,7 +278,7 @@ class Convert2GifDialog(Gtk.Window):
                                         Gtk.ResponseType.CANCEL,
                                         Gtk.STOCK_OPEN,
                                         Gtk.ResponseType.OK))
-        dialog.set_current_folder(expanduser("~"))
+        dialog.set_current_folder(os.path.expanduser("~"))
         filter_video = Gtk.FileFilter()
         filter_video.set_name(_('Video files'))
         for amimetype in SUPPORTED_MIMES:
@@ -437,37 +472,30 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
             self.last_image_thread.kill()
 
     def on_spinbutton_begin_value_changed(self, widget):
-        min_value = self.spinbutton_begin.get_value()
-        max_value = self.duration_in_seconds
-        if self.spinbutton_end.get_value() < min_value:
-            self.spinbutton_end.set_adjustment(
-                Gtk.Adjustment(min_value, min_value, max_value, 1, 10, 0))
-            self.spinbutton_end.set_value(min_value)
-        else:
-            self.spinbutton_end.set_adjustment(
-                Gtk.Adjustment(self.spinbutton_end.get_value(),
-                               min_value, max_value, 1, 10, 0))
-        temporal_image = os.path.join(self.tmp_folder, 'begin.png')
-        if os.path.exists(temporal_image):
-            os.remove(temporal_image)
-        if self.first_image_thread is not None:
-            self.first_image_thread.kill()
-        self.first_image_thread = get_thumb_for_video(self.filename,
-                                                      min_value,
-                                                      temporal_image,
-                                                      self.begin)
+        terminate_thread(self.first_image_thread)
+        if self.first_image_thread is None:
+            value = self.spinbutton_begin.get_value()
+            temp_begin_image = os.path.join(self.tmp_folder, 'begin.png')
+            if os.path.exists(temp_begin_image):
+                os.remove(temp_begin_image)
+            self.first_image_thread = \
+                _get_thumbnail_for_video(self.vss,
+                                         value,
+                                         temp_begin_image,
+                                         self.begin)
 
     def on_spinbutton_end_value_changed(self, widget):
-        value = self.spinbutton_end.get_value()
-        temporal_image = os.path.join(self.tmp_folder, 'end.png')
-        if os.path.exists(temporal_image):
-            os.remove(temporal_image)
-        if self.last_image_thread is not None:
-            self.last_image_thread.kill()
-        self.last_image_thread = get_thumb_for_video(self.filename,
-                                                     value,
-                                                     temporal_image,
-                                                     self.end)
+        terminate_thread(self.last_image_thread)
+        if self.last_image_thread is None:
+            value = self.spinbutton_end.get_value()
+            temp_end_image = os.path.join(self.tmp_folder, 'end.png')
+            if os.path.exists(temp_end_image):
+                os.remove(temp_end_image)
+            self.last_image_thread = \
+                _get_thumbnail_for_video(self.vss,
+                                         value,
+                                         temp_end_image,
+                                         self.end)
 
     def on_button_ok_clicked(self, widget):
         start_position = self.spinbutton_begin.get_value()
@@ -479,8 +507,15 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
         if os.path.exists(output_file + '.tmp'):
             os.remove(output_file + '.tmp')
         if self.filename is not None and\
-           os.path.exists(self.filename) and duration > 0:
-            ejecuta('avconv -t %s -ss %s -i "%s" -r 1/1"%s"' %
+                os.path.exists(self.filename) and duration > 0:
+            '''
+            self.vss.snapshootrate(self.tmp_folder,
+                                   'out',
+                                   start_position,
+                                   end_position,
+                                   1)
+            '''
+            ejecuta('avconv -t %s -ss %s -i "%s" -r 1/1 "%s"' %
                     (duration, start_position, self.filename,
                      os.path.join(self.tmp_folder, 'out%04d.png')))
             ejecuta('convert -delay 1x1 -loop 0 "%s" "%s"' %
@@ -514,6 +549,7 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
 
     def process_file(self, filename):
         self.filename = filename
+        self.vss = VideoSnapShooter(filename)
         mime = mimetypes.guess_type(self.filename)
         if os.path.exists(self.filename):
             mime = mimetypes.guess_type(self.filename)[0]
@@ -522,10 +558,7 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
                     self.first_image_thread.kill()
                 if self.last_image_thread is not None:
                     self.last_image_thread.kill()
-                metadata = getVideoDetails(self.filename)
-                self.fps = metadata['fps']
-                self.duration_in_seconds = int(
-                    metadata['duration_in_seconds'])
+                self.duration_in_seconds = int(self.vss.get_duration())
                 self.spinbutton_begin.set_adjustment(
                     Gtk.Adjustment(0, 0, self.duration_in_seconds,
                                    1, 10, 0))
@@ -539,19 +572,31 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
                 self.spinbutton_end.set_editable(True)
                 temp_begin_image = os.path.join(self.tmp_folder, 'begin.png')
                 temp_end_image = os.path.join(self.tmp_folder, 'end.png')
+                '''
+                self.vss.snapshoot(temp_begin_image, 0)
+                set_image_from_file_at_size(self.end, temp_end_image, 300, 300)
+                #self.begin.set_from_file(temp_begin_image)
+                self.vss.snapshoot(temp_end_image, self.duration_in_seconds)
+                set_image_from_file_at_size(self.end, temp_end_image, 300, 300)
+                #self.end.set_from_file(temp_end_image)
+                '''
+                '''
+                print(1)
+                terminate_thread(self.first_image_thread)
                 self.first_image_thread = \
-                    get_thumb_for_video(self.filename,
+                    get_thumb_for_video(self.vss,
                                         0,
                                         temp_begin_image,
                                         self.begin)
+                print(2)
+                terminate_thread(self.last_image_thread)
                 self.last_image_thread = \
-                    get_thumb_for_video(self.filename,
-                                        self.duration_in_seconds - 1,
+                    get_thumb_for_video(self.vss,
+                                        self.duration_in_seconds,
                                         temp_end_image,
                                         self.end)
-                destinationfilename, originalextension = os.path.\
-                    splitext(filename)
-
+                print(3)
+                '''
 if __name__ == '__main__':
     ld = Convert2GifDialog()
     Gtk.main()
