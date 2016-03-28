@@ -463,7 +463,7 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
             self.button_output.set_label(filename)
         dialog.destroy()
 
-    def on_destroy(self):
+    def on_destroy(self, widget):
         if os.path.exists(self.tmp_folder):
             shutil.rmtree(self.tmp_folder)
         if self.first_image_thread is not None:
