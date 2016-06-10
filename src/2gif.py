@@ -20,10 +20,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
+import gi
+try:
+    gi.require_version('Gtk', '3.0')
+    gi.require_version('Gst', '1.0')
+except Exception as e:
+    print(e)
+    exit(1)
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import Gio
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
+from idleobject import IdleObject
 import webbrowser
 import tempfile
 import re
@@ -37,6 +46,9 @@ import urllib.request
 import shutil
 import threading
 from videosnapshooter import VideoSnapShooter
+from preferences_dialog import PreferencesDialog
+from configurator import Configuration
+from progreso import Progreso
 import ctypes
 
 
@@ -71,39 +83,76 @@ def terminate_thread(thread):
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
-def ejecuta(comando):
-    print(comando)
-    args = shlex.split(comando)
-    p = subprocess.Popen(args, bufsize=10000, stdout=subprocess.PIPE)
-    valor = p.communicate()[0]
-    return valor
+def timestr_to_seconds(time_str):
+        hours, minutes, seconds = time_str.split(':')
+        return float(hours) * 3600.0 + float(minutes) * 60.0 + float(seconds)
 
 
-def get_thumb_for_video(vss, start_position, output,
-                        output_image):
-    t = threading.Thread(target=_get_thumbnail_for_video, args=(vss,
-                                                                start_position,
-                                                                output,
-                                                                output_image))
-    t.daemon = True
-    t.start()
-    return t
+class ConvertVideo(IdleObject, threading.Thread):
+    __gsignals__ = {
+        'processed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (int,)),
+        'interrupted': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()),
+        'finished': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()),
+        }
+
+    def __init__(self, input_file, output_file, start_position, duration,
+                 frames, scale_t):
+        IdleObject.__init__(self)
+        threading.Thread.__init__(self)
+        self.input_file = input_file
+        self.output_file = output_file
+        self.start_position = start_position
+        self.duration = duration
+        self.frames = frames
+        self.scale_t = scale_t
+        self.daemon = True
+        self.stop = False
+
+    def stop_it(self, anobject=None):
+        self.stop = True
+
+    def run(self):
+        comando = 'avconv -t %s -ss %s -i "%s" -r %s %s "%s"' % (
+            self.duration, self.start_position, self.input_file, self.frames,
+            self.scale_t, self.output_file)
+        args = shlex.split(comando)
+        p = subprocess.Popen(args, stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, close_fds=True)
+        contador = 0
+        for line in p.stdout:
+            line = line.decode().rstrip()
+            m = re.search('time=([0-9,\.\:]+)\ bitrate=', line)
+            if m:
+                contador += 1
+                found = m.group(1)
+                self.emit('processed',
+                          int(timestr_to_seconds(found)/float(98)*100.0))
+                if self.stop:
+                    p.kill()
+                    self.emit('interrupted')
+        self.emit('finished')
 
 
-def _get_thumbnail_for_video(vss, start_position, output, update_image):
-    print('a')
-    vss.snapshoot(output, start_position)
-    print('b')
-    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(output, 300, 300)
-    print('c')
-    update_image.set_from_pixbuf(pixbuf)
-    print('d')
+class GetThumbnailForVideo(IdleObject, threading.Thread):
+    __gsignals__ = {
+        'finished': (GObject.SIGNAL_RUN_FIRST,
+                     GObject.TYPE_NONE,
+                     (GdkPixbuf.Pixbuf,))
+        }
 
+    def __init__(self, vss, start_position, output):
+        IdleObject.__init__(self)
+        threading.Thread.__init__(self)
+        self.vss = vss
+        self.start_position = start_position
+        self.output = output
+        self.daemon = True
 
-def _get_thumbnail_for_video2(filename, start_position, output, update_image):
-    ejecuta('avconv -i "%s" -f image2 -ss %s -vf scale=-1:300 -vframes 1 %s -y'
-            % (filename, start_position, output))
-    update_image.set_from_file(output)
+    def run(self):
+        self.vss.snapshoot(self.output, self.start_position)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(self.output, 300, 300)
+        self.emit('finished', pixbuf)
 
 
 def get_seconds(value):
@@ -182,10 +231,29 @@ class Convert2GifDialog(Gtk.Window):
         self.code = None
         Gtk.Window.__init__(self)
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-        self.set_title(comun.APPNAME)
         self.set_icon_from_file(comun.ICON)
         self.set_default_size(300, 300)
         self.connect('destroy', self.on_destroy)
+        #
+        hb = Gtk.HeaderBar()
+        hb.set_show_close_button(True)
+        hb.props.title = comun.APPNAME
+        self.set_titlebar(hb)
+        button = Gtk.Button()
+        button.connect('clicked', self.on_about_activate)
+        icon = Gio.ThemedIcon.new_with_default_fallbacks(
+            'dialog-information-symbolic')
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        button.add(image)
+        hb.pack_end(button)
+        button2 = Gtk.Button()
+        button2.connect('clicked', self.on_preferences_clicked)
+        icon = Gio.ThemedIcon.new_with_default_fallbacks(
+            'preferences-system-symbolic')
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        button2.add(image)
+        hb.pack_end(button2)
+
         #
         self.vbox = Gtk.VBox(False, 2)
         self.add(self.vbox)
@@ -436,6 +504,12 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
         about_dialog.run()
         about_dialog.destroy()
 
+    def on_preferences_clicked(self, widget):
+        cm = PreferencesDialog(self)
+        if cm.run() == Gtk.ResponseType.ACCEPT:
+            cm.close_ok()
+        cm.destroy()
+
     def on_toolbar_clicked(self, widget, option):
         if option == 'open-file':
             filename = self.load_file_dialog()
@@ -472,30 +546,28 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
             self.last_image_thread.kill()
 
     def on_spinbutton_begin_value_changed(self, widget):
-        terminate_thread(self.first_image_thread)
-        if self.first_image_thread is None:
-            value = self.spinbutton_begin.get_value()
-            temp_begin_image = os.path.join(self.tmp_folder, 'begin.png')
-            if os.path.exists(temp_begin_image):
-                os.remove(temp_begin_image)
-            self.first_image_thread = \
-                _get_thumbnail_for_video(self.vss,
-                                         value,
-                                         temp_begin_image,
-                                         self.begin)
+        value = self.spinbutton_begin.get_value()
+        temp_begin_image = os.path.join(self.tmp_folder, 'begin.png')
+        if os.path.exists(temp_begin_image):
+            os.remove(temp_begin_image)
+        gtfv = GetThumbnailForVideo(self.vss, value, temp_begin_image)
+        gtfv.connect('finished', self.on_get_thumbnailforvideo_begin)
+        gtfv.start()
+
+    def on_get_thumbnailforvideo_begin(self, anobject, pixbuf):
+        self.begin.set_from_pixbuf(pixbuf)
 
     def on_spinbutton_end_value_changed(self, widget):
-        terminate_thread(self.last_image_thread)
-        if self.last_image_thread is None:
-            value = self.spinbutton_end.get_value()
-            temp_end_image = os.path.join(self.tmp_folder, 'end.png')
-            if os.path.exists(temp_end_image):
-                os.remove(temp_end_image)
-            self.last_image_thread = \
-                _get_thumbnail_for_video(self.vss,
-                                         value,
-                                         temp_end_image,
-                                         self.end)
+        value = self.spinbutton_end.get_value()
+        temp_end_image = os.path.join(self.tmp_folder, 'end.png')
+        if os.path.exists(temp_end_image):
+            os.remove(temp_end_image)
+        gtfv = GetThumbnailForVideo(self.vss, value, temp_end_image)
+        gtfv.connect('finished', self.on_get_thumbnailforvideo_end)
+        gtfv.start()
+
+    def on_get_thumbnailforvideo_end(self, anobject, pixbuf):
+        self.end.set_from_pixbuf(pixbuf)
 
     def on_button_ok_clicked(self, widget):
         start_position = self.spinbutton_begin.get_value()
@@ -515,20 +587,42 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
                                    end_position,
                                    1)
             '''
-            ejecuta('avconv -t %s -ss %s -i "%s" -r 1/1 "%s"' %
-                    (duration, start_position, self.filename,
-                     os.path.join(self.tmp_folder, 'out%04d.png')))
-            ejecuta('convert -delay 1x1 -loop 0 "%s" "%s"' %
-                    (os.path.join(self.tmp_folder, 'out*.png'),
-                     os.path.join(self.tmp_folder, 'temporal.gif')))
-            ejecuta('convert -layers Optimize "%s" "%s"' %
-                    (os.path.join(self.tmp_folder, 'temporal.gif'),
-                     output_file))
-            self.on_destroy()
-            exit()
+            configuration = Configuration()
+            frames = configuration.get('frames')
+            scale = configuration.get('scale')
+            modify_width = configuration.get('modify-width')
+            width = configuration.get('width')
+            modify_height = configuration.get('modify-height')
+            height = configuration.get('height')
+            if scale is True:
+                if modify_width is True:
+                    t_width = str(width)
+                else:
+                    t_width = '-1'
+                if modify_height is True:
+                    t_height = str(height)
+                else:
+                    t_height = '-1'
+                if t_width != '-1' or t_height != '-1':
+                    scale_t = ' -vf scale=%s:%s ' % (t_width, t_height)
+                else:
+                    scale_t = ''
+            else:
+                scale_t = ''
+            # input_file, output_file, start_position, duration,
+            #             frames, scale_t):
+            progreso = Progreso(_('Converting video'), self, 100)
+            convertVideo = ConvertVideo(self.filename, output_file,
+                                        start_position, duration, frames,
+                                        scale_t)
+            progreso.connect('i-want-stop', convertVideo.stop_it)
+            convertVideo.connect('processed', progreso.set_value)
+            convertVideo.connect('interrupted', progreso.close)
+            convertVideo.start()
+            progreso.run()
 
     def on_button_cancel_clicked(self, widget):
-        self.on_destroy()
+        self.on_destroy(None)
         exit()
 
     def drag_begin(self, widget, context):
@@ -554,49 +648,19 @@ Lorenzo Carbonell <https://launchpad.net/~lorenzo-carbonell>\n
         if os.path.exists(self.filename):
             mime = mimetypes.guess_type(self.filename)[0]
             if mime in SUPPORTED_MIMES:
-                if self.first_image_thread is not None:
-                    self.first_image_thread.kill()
-                if self.last_image_thread is not None:
-                    self.last_image_thread.kill()
                 self.duration_in_seconds = int(self.vss.get_duration())
-                self.spinbutton_begin.set_adjustment(
-                    Gtk.Adjustment(0, 0, self.duration_in_seconds,
-                                   1, 10, 0))
-                self.spinbutton_begin.set_value(0)
-                self.spinbutton_begin.set_editable(True)
                 self.spinbutton_end.set_adjustment(
                     Gtk.Adjustment(self.duration_in_seconds, 0,
                                    self.duration_in_seconds, 1,
                                    10, 0))
                 self.spinbutton_end.set_value(self.duration_in_seconds)
                 self.spinbutton_end.set_editable(True)
-                temp_begin_image = os.path.join(self.tmp_folder, 'begin.png')
-                temp_end_image = os.path.join(self.tmp_folder, 'end.png')
-                '''
-                self.vss.snapshoot(temp_begin_image, 0)
-                set_image_from_file_at_size(self.end, temp_end_image, 300, 300)
-                #self.begin.set_from_file(temp_begin_image)
-                self.vss.snapshoot(temp_end_image, self.duration_in_seconds)
-                set_image_from_file_at_size(self.end, temp_end_image, 300, 300)
-                #self.end.set_from_file(temp_end_image)
-                '''
-                '''
-                print(1)
-                terminate_thread(self.first_image_thread)
-                self.first_image_thread = \
-                    get_thumb_for_video(self.vss,
-                                        0,
-                                        temp_begin_image,
-                                        self.begin)
-                print(2)
-                terminate_thread(self.last_image_thread)
-                self.last_image_thread = \
-                    get_thumb_for_video(self.vss,
-                                        self.duration_in_seconds,
-                                        temp_end_image,
-                                        self.end)
-                print(3)
-                '''
+                self.spinbutton_begin.set_adjustment(
+                    Gtk.Adjustment(0, 0, self.duration_in_seconds,
+                                   1, 10, 0))
+                self.spinbutton_begin.set_value(0)
+                self.spinbutton_begin.set_editable(True)
+
 if __name__ == '__main__':
     ld = Convert2GifDialog()
     Gtk.main()
