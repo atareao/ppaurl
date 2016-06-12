@@ -1,9 +1,9 @@
-#! /usr/bin/python3
-# -*- coding: iso-8859-1 -*-
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
-# com.py
+# This file is part of 2gif
 #
-# Copyright (C) 2012 Lorenzo Carbonell
+# Copyright (C) 2015-2016 Lorenzo Carbonell
 # lorenzo.carbonell.cerezo@gmail.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-#
 
 import os
 import locale
@@ -68,7 +65,11 @@ else:
     DEBIANDIR = os.path.normpath(os.path.join(ROOTDIR, '../debian'))
     CHANGELOG = os.path.join(DEBIANDIR, 'changelog')
 #
+HTML = os.path.join(APPDIR, 'main.html')
 ICON = os.path.join(ICONDIR, '2gif.png')
+BITCOIN_LOGO = os.path.join(ICONDIR, 'bitcoin.png')
+FLATTR_LOGO = os.path.join(ICONDIR, 'flattr.png')
+PAYPAL_LOGO = os.path.join(ICONDIR, 'paypal.png')
 BACKGROUND = os.path.join(PIXMAPDIR, 'background.svg')
 BACKGROUND_NONE = os.path.join(PIXMAPDIR, 'background_none.svg')
 #

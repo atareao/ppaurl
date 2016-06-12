@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-#
-# preferences_dialog.py
 #
 # This file is part of 2gif
 #
-# Copyright (C) 2016
-# Lorenzo Carbonell Cerezo <lorenzo.carbonell.cerezo@gmail.com>
+# Copyright (C) 2015-2016 Lorenzo Carbonell
+# lorenzo.carbonell.cerezo@gmail.com
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
