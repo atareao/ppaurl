@@ -1,5 +1,5 @@
 src/*.py /opt/extras.ubuntu.com/2gif/bin
-data/icons/2gif.png /opt/extras.ubuntu.com/2gif/share/icons
+data/icons/*.png /opt/extras.ubuntu.com/2gif/share/icons
 data/icons/background.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
 data/icons/background_none.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
 data/extras-2gif.desktop /usr/share/applications
