@@ -1,8 +1,9 @@
-2gif (0.3.0-0extras16.04.1) xenial; urgency=medium
+2gif (0.3.0-0extras16.04.2) xenial; urgency=medium
 
   * Fixed icons
+  * Fixed bug in preferences dialog
 
- -- Lorenzo Carbonell <lorenzo.carbonell.cerezo@gmail.com>  Mon, 13 Jun 2016 20:48:18 +0200
+ -- Lorenzo Carbonell <lorenzo.carbonell.cerezo@gmail.com>  Mon, 13 Jun 2016 23:12:16 +0200
 
 2gif (0.3.0-0extras16.04.0) xenial; urgency=medium
 

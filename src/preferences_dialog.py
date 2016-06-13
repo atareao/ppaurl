@@ -44,7 +44,6 @@ class PreferencesDialog(Gtk.Dialog):
                             (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT,
                                 Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT))
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-        self.connect('close', self.close_ok)
         self.set_icon_from_file(comun.ICON)
         #
         vbox0 = Gtk.VBox(spacing=5)
@@ -133,9 +132,6 @@ class PreferencesDialog(Gtk.Dialog):
 
     def on_modify_height(self, widget, data):
         self.height.set_sensitive(data & self.scale.get_active())
-
-    def close_ok(self):
-        self.save_preferences()
 
     def load_preferences(self):
         configuration = Configuration()
