@@ -32,6 +32,7 @@ from gi.repository import GdkPixbuf
 from videosnapshooter import VideoSnapShooter
 import time
 
+
 class GetThumbnailForVideo(IdleObject, Thread):
     __gsignals__ = {
         'finished': (GObject.SIGNAL_RUN_FIRST,

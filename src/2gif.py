@@ -91,6 +91,9 @@ class MainApplication(Gtk.Application):
             'open_file',
             callback=self.on_open_file_clicked))
         self.add_action(create_action(
+            'create_gif',
+            callback=self.on_create_gif_clicked))
+        self.add_action(create_action(
             'set_preferences',
             callback=self.on_preferences_clicked))
         self.add_action(create_action(
@@ -149,6 +152,9 @@ crear-un-gif-animado-de-un-video-en-ubuntu-en-un-solo-clic/')))
         dialog = SupportDialog(self.win)
         dialog.run()
         dialog.destroy()
+
+    def on_create_gif_clicked(self, widget, optional):
+        self.win.on_button_ok_clicked(widget)
 
     def on_open_file_clicked(self, widget, optional):
         filename = self.load_file_dialog()

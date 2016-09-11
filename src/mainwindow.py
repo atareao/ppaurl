@@ -61,17 +61,34 @@ class MainWindow(Gtk.ApplicationWindow):
         hb.props.title = comun.APPNAME
         self.set_titlebar(hb)
 
-        menu_button_open = Gio.Menu()
-        menu_button_open.append_item(
-            Gio.MenuItem.new(_('Open video file'), 'app.open_file'))
-
         button_open = Gtk.MenuButton()
         button_open.add(Gtk.Image.new_from_gicon(
             Gio.ThemedIcon.new_with_default_fallbacks(
                 'document-open-symbolic'),
             Gtk.IconSize.BUTTON))
-        button_open.set_menu_model(menu_button_open)
         hb.pack_start(button_open)
+
+        button_run = Gtk.MenuButton()
+        button_run.add(Gtk.Image.new_from_gicon(
+            Gio.ThemedIcon.new_with_default_fallbacks(
+                'emblem-system-symbolic'),
+            Gtk.IconSize.BUTTON))
+        hb.pack_start(button_run)
+
+        menu_button_open = Gio.Menu()
+        # Popup menu creation
+        menu_button_open.append_item(
+            Gio.MenuItem.new(_('Open video file'), 'app.open_file'))
+        menu_button_open.append_item(
+            Gio.MenuItem.new('', None))
+        menu_button_open.append_item(
+            Gio.MenuItem.new(_('Exit'), 'app.quit'))
+        button_open.set_menu_model(menu_button_open)
+
+        menu_button_run = Gio.Menu()
+        menu_button_run.append_item(
+            Gio.MenuItem.new(_('Create gif'), 'app.create_gif'))
+        button_run.set_menu_model(menu_button_run)
         #
         menu_button_about = Gio.Menu()
         menu_button_about.append_item(
@@ -198,16 +215,6 @@ class MainWindow(Gtk.ApplicationWindow):
                      xoptions=Gtk.AttachOptions.SHRINK,
                      yoptions=Gtk.AttachOptions.SHRINK)
         #
-        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
-        self.vbox.pack_start(hbox, False, False, 5)
-
-        self.button_ok = Gtk.Button.new_from_stock(Gtk.STOCK_EXECUTE)
-        self.button_ok.connect('clicked', self.on_button_ok_clicked)
-        hbox.pack_start(self.button_ok, False, False, 5)
-        self.button_cancel = Gtk.Button.new_from_stock(Gtk.STOCK_QUIT)
-        self.button_cancel.connect('clicked', self.on_button_cancel_clicked)
-        hbox.pack_end(self.button_cancel, False, False, 5)
-        #
         self.duration_in_seconds = 0
         self.fps = 0
         self.filename = None
@@ -216,7 +223,7 @@ class MainWindow(Gtk.ApplicationWindow):
             shutil.rmtree(self.tmp_folder)
             os.makedirs(self.tmp_folder)
         #
-        self.init_menu()
+        # self.init_menu()
         #
         self.spinbutton_begin.connect('value-changed',
                                       self.on_spinbutton_begin_value_changed)

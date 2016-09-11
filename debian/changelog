@@ -1,3 +1,9 @@
+2gif (0.3.1-0extras16.04.0) xenial; urgency=medium
+
+  * Some minor changes in UI
+
+ -- Lorenzo Carbonell <lorenzo.carbonell.cerezo@gmail.com>  Sun, 11 Sep 2016 08:09:37 +0200
+
 2gif (0.3.0-0extras16.04.2) xenial; urgency=medium
 
   * Fixed icons
