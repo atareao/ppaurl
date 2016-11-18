@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# This file is part of 2gif
+# This file is part of ppaurl
 #
-# Copyright (C) 2015-2016 Lorenzo Carbonell
+# Copyright (C) 2016-2017 Lorenzo Carbonell
 # lorenzo.carbonell.cerezo@gmail.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -39,16 +39,16 @@ PARAMS = {'first-time': True,
           'height': 600,
           }
 
-APP = '2gif'
-APPNAME = '2gif'
+APP = 'ppaurl'
+APPNAME = 'ppaurl'
 APP_CONF = APP + '.conf'
 CONFIG_DIR = os.path.join(os.path.expanduser('~'), '.config')
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
 CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APP_CONF)
 # check if running from source
 if is_package():
-    ROOTDIR = '/opt/extras.ubuntu.com/2gif'
-    APPDIR = os.path.join(ROOTDIR, 'share/2gif')
+    ROOTDIR = '/opt/extras.ubuntu.com/ppaurl'
+    APPDIR = os.path.join(ROOTDIR, 'share/ppaurl')
     LANGDIR = os.path.join(ROOTDIR, 'locale-langpack')
     BINDIR = os.path.join(ROOTDIR, 'bin')
     ICONDIR = os.path.join(ROOTDIR, 'share/icons')
@@ -65,13 +65,10 @@ else:
     DEBIANDIR = os.path.normpath(os.path.join(ROOTDIR, '../debian'))
     CHANGELOG = os.path.join(DEBIANDIR, 'changelog')
 #
-HTML = os.path.join(APPDIR, 'main.html')
-ICON = os.path.join(ICONDIR, '2gif.png')
+ICON = os.path.join(ICONDIR, 'ppaurl.svg')
 BITCOIN_LOGO = os.path.join(ICONDIR, 'bitcoin.png')
 FLATTR_LOGO = os.path.join(ICONDIR, 'flattr.png')
 PAYPAL_LOGO = os.path.join(ICONDIR, 'paypal.png')
-BACKGROUND = os.path.join(PIXMAPDIR, 'background.svg')
-BACKGROUND_NONE = os.path.join(PIXMAPDIR, 'background_none.svg')
 #
 f = open(CHANGELOG, 'r')
 line = f.readline()

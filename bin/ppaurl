@@ -1,0 +1,4 @@
+#!/bin/bash
+c_user=$(whoami)
+#pkexec --user $c_user ppaurl-pkexec $1
+pkexec ppaurl-pkexec $1

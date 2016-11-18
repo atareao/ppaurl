@@ -1,6 +1,6 @@
-src/*.py /opt/extras.ubuntu.com/2gif/bin
-data/icons/*.png /opt/extras.ubuntu.com/2gif/share/icons
-data/icons/background.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
-data/icons/background_none.svg /opt/extras.ubuntu.com/2gif/share/pixmaps
-data/extras-2gif.desktop /usr/share/applications
-debian/changelog /opt/extras.ubuntu.com/2gif/share/2gif
+src/*.py /opt/extras.ubuntu.com/ppaurl/share/ppaurl
+bin/* /usr/bin
+data/icons/*.svg /opt/extras.ubuntu.com/ppaurl/share/icons
+data/extras-ppaurl.desktop /usr/share/applications
+debian/changelog /opt/extras.ubuntu.com/ppaurl/share/ppaurl
+policykit/actions/com.ubuntu.pkexec.ppaurl.policy /usr/share/polkit-1/actions/

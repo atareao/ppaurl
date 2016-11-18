@@ -1,19 +1,19 @@
-2gif
-====
+ppaurl
+======
 
-2gif is a simple application to convert videos to gif
+ppaurl is a utility to add PPA repositories to the system
 
 Download
 --------
 
 Download the [package][dlp] *or* checkout the source:
 
-    $ git clone https://github.com/atareao/2gif
+    $ git clone https://github.com/atareao/ppaurl
 
 
 Installation
 ------------
 
-    $ sudo add-apt-repositoy ppa:atareao/atareao
+    $ sudo add-apt-repositoy ppa:atareao/ppaurl
     $ sudo apt-get update
-    $ sudo apt-get install 2gif
+    $ sudo apt-get install ppaurl

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Exec=/usr/bin/ppaurl %u
+Name=PPA‑URL
+Comment=PPA‑URL handler
+Icon=/opt/extras.ubuntu.com/ppaurl/share/icons/ppaurl.svg
+Categories=Application;Network;
+MimeType=x-scheme-handler/ppa;

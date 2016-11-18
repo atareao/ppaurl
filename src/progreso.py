@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# This file is part of 2gif
+# This file is part of ppaurl
 #
-# Copyright (C) 2015-2016 Lorenzo Carbonell
+# Copyright (C) 2016-2017 Lorenzo Carbonell
 # lorenzo.carbonell.cerezo@gmail.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@ except Exception as e:
 from gi.repository import Gtk
 from gi.repository import GObject
 import threading
+from comun import _
 
 
 class Progreso(Gtk.Dialog, threading.Thread):
@@ -86,25 +87,24 @@ class Progreso(Gtk.Dialog, threading.Thread):
         self.stop = True
         self.emit('i-want-stop')
 
-    def set_scanning_file(self, afile):
-        if len(afile) > 35:
-            text = '...'+afile[-32:]
-        else:
-            text = afile
-        self.label.set_label(text)
-
-    def set_value(self, anobject=None, value=1):
+    def set_value(self, anobject=None, value=1, elapsed_time=-1,
+                  estimated_time=-1):
         if value >= 0 and value <= self.max_value:
             self.value = value
             fraction = self.value/self.max_value
             self.progressbar.set_fraction(fraction)
+            text = _('Copied: %s %%\nElapsed time: %s s\n\
+Estimated time: %s s' % (
+                value, elapsed_time, estimated_time))
+            self.label.set_label(text)
             if self.value == self.max_value:
                 self.hide()
 
-    def close(self, widget=None):
+    def close(self, *args):
         self.destroy()
 
-    def increase(self):
+    def increase(self, anobject, command, *args):
+        self.label.set_text(_('Executing: %s') % command)
         self.value += 1.0
         fraction = self.value/self.max_value
         self.progressbar.set_fraction(fraction)
