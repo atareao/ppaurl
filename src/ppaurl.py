@@ -104,22 +104,29 @@ class PPAUrlDialog(Gtk.Window):
             ppa = args[1]
         label = Gtk.Label(_('Add "%s" repository?') % ppa)
         label.set_alignment(0, 0.5)
-        grid.attach(label, 0, 0, 1, 1)
+        grid.attach(label, 0, 0, 2, 1)
+        expander = Gtk.Expander()
+        expander.connect('notify::expanded', self.on_expanded)
+        grid.attach(expander, 0, 1, 2, 2)
+
+        alignment = Gtk.Alignment()
+        # alignment.set_padding(1, 0, 2, 2)
+        alignment.props.xscale = 1
+        scrolledwindow = Gtk.ScrolledWindow()
+        scrolledwindow.set_hexpand(True)
+        scrolledwindow.set_vexpand(True)
+        self.terminal = SmartTerminal(self)
+        scrolledwindow.add(self.terminal)
+        alignment.add(scrolledwindow)
+        expander.add(alignment)
+
         button_ok = Gtk.Button(_('Ok'))
-        grid.attach(button_ok, 1, 0, 1, 1)
+        grid.attach(button_ok, 0, 3, 1, 1)
         button_ok.connect('clicked', self.on_button_ok_clicked)
         button_cancel = Gtk.Button(_('Cancel'))
         button_cancel.connect('clicked', self.on_button_cancel_clicked)
-        grid.attach(button_cancel, 2, 0, 1, 1)
-        expander = Gtk.Expander()
-        expander.connect('notify::expanded', self.on_expanded)
-        grid.attach(expander, 0, 1, 3, 2)
-        alignment = Gtk.Alignment()
-        alignment.set_padding(2, 2, 2, 2)
-        alignment.props.xscale = 1
-        self.terminal = SmartTerminal(self)
-        alignment.add(self.terminal)
-        expander.add(alignment)
+        grid.attach(button_cancel, 1, 3, 1, 1)
+
         self.args = args
         self.is_added = False
         self.show_all()
