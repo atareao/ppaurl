@@ -42,6 +42,17 @@ import utils
 MARGIN = 5
 
 
+def joiner(args):
+    if len(args) == 1:
+        return args[0]
+    elif len(args) == 2:
+        return ' and '.join(args)
+    elif len(args) > 2:
+        return ', '.join(args[:-2]) + ', ' + ' and '.join(args[-2:])
+    else:
+        return ''
+
+
 class SmartTerminal(Vte.Terminal):
     def __init__(self, parent):
         Vte.Terminal.__init__(self)
@@ -84,6 +95,8 @@ class SmartTerminal(Vte.Terminal):
 class PPAUrlDialog(Gtk.Window):
     def __init__(self, args):
         Gtk.Window.__init__(self)
+        if len(args) < 2:
+            Gtk.main_quit()
         self.set_title(_('Add ppa repository'))
         self.connect('delete-event', Gtk.main_quit)
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
@@ -98,11 +111,23 @@ class PPAUrlDialog(Gtk.Window):
         grid.set_column_spacing(MARGIN)
         grid.set_row_spacing(MARGIN)
         self.add(grid)
+
         if args[1].find('?') > -1:
-            ppa = args[1].split('?')[0]
+            self.ppa = args[1].split('?')[0]
+            if len(args[1].split('?')[1]) == 0:
+                self.apps = None
+            elif len(args[1].split('?')[1]) == 1:
+                self.apps = args[1].split('?')[1]
+            else:
+                self.apps = args[1].split('?')[1].split(',')
         else:
-            ppa = args[1]
-        label = Gtk.Label(_('Add "%s" repository?') % ppa)
+            self.ppa = args[1]
+            self.apps = None
+        if self.apps is None:
+            label = Gtk.Label(_('Add "%s" repository?') % self.ppa)
+        else:
+            label = Gtk.Label(_('Add "%s" repository and install %s?') % (
+                self.ppa, joiner(self.apps)))
         label.set_alignment(0, 0.5)
         grid.attach(label, 0, 0, 2, 1)
         expander = Gtk.Expander()
@@ -127,7 +152,6 @@ class PPAUrlDialog(Gtk.Window):
         button_cancel.connect('clicked', self.on_button_cancel_clicked)
         grid.attach(button_cancel, 1, 3, 1, 1)
 
-        self.args = args
         self.is_added = False
         self.show_all()
 
@@ -142,22 +166,15 @@ class PPAUrlDialog(Gtk.Window):
         Gtk.main_quit()
 
     def on_button_ok_clicked(self, button):
-        if len(self.args) > 1 and self.args[1].startswith('ppa:'):
-            if self.args[1].find('?') > -1 and \
-                    self.args[1].split('?')[1].find(','):
-                ppa = self.args[1].split('?')[0]
-                apps = self.args[1].split('?')[1].split(',')
-            else:
-                ppa = self.args[1]
-                apps = None
-            if not utils.is_ppa_repository_added(ppa):
-                commands = ['add-apt-repository --yes %s' % arg,
+        if self.ppa.startswith('ppa:'):
+            if not utils.is_ppa_repository_added(self.ppa):
+                commands = ['add-apt-repository --yes %s' % self.ppa,
                             'apt update',
                             'apt upgrade']
             else:
                 commands = []
-            if apps is not None:
-                for app in apps:
+            if self.apps is not None:
+                for app in self.apps:
                     if not utils.is_package_installed(app):
                         commands.append('apt install %s' % app)
             print(commands)
@@ -167,7 +184,7 @@ class PPAUrlDialog(Gtk.Window):
 def main(args):
     print(args)
     if len(args) < 2:
-        args.append('ppa:atareao/atareao?sample,sample2')
+        args.append('ppa:atareao/atareao?')
     win = PPAUrlDialog(args)
     Gtk.main()
 
