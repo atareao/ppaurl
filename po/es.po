@@ -1,0 +1,62 @@
+# Spanish translations for PACKAGE package.
+# Copyright (C) 2017 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# lorenzo <lorenzo.carbonell.cerezo@gmail.com>, 2017.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: ppaurl 0.0.9\n"
+"Report-Msgid-Bugs-To: lorenzo.carbonell.cerezo@gmail.com\n"
+"POT-Creation-Date: 2018-03-19 07:49+0100\n"
+"PO-Revision-Date: 2017-08-10 10:31+0200\n"
+"Last-Translator: lorenzo <lorenzo.carbonell.cerezo@gmail.com>\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:77
+msgid "Add ppa repository"
+msgstr "Añade el repositorio PPA"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:104
+#, python-brace-format
+msgid "Add \"{0}\" repository?"
+msgstr "¿Añadimos el repositorio \"{0}\"?"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:107
+#, python-brace-format
+msgid "Add \"{0}\" repository and install {1}?"
+msgstr "¿Añadimos el repositorio \"{0}\" e instalamos {1}?"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:137
+msgid "Ok"
+msgstr "Aceptar"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:141
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:155
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:170
+msgid "Exit"
+msgstr "Salir"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:158
+msgid "Installation completed!"
+msgstr "¡Instalación completada!"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:161
+msgid "Installation NOT completed!"
+msgstr "¡Instalación NO completada!"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:181
+#, python-format
+msgid "Executing: %s"
+msgstr "Ejecutando: %s"
+
+#: /datos/Sync/Programacion/Python/ppaurl/src/ppaurl.py:203
+msgid "Do you want to stop the installation?"
+msgstr "¿Seguro que quieres parar la instalación?"

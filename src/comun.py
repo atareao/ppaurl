@@ -29,22 +29,9 @@ def is_package():
     return __file__.find('src') < 0
 
 
-PARAMS = {'first-time': True,
-          'version': '',
-          'frames': 8,
-          'scale': False,
-          'modify-width': True,
-          'modify-height': True,
-          'width': 1024,
-          'height': 600,
-          }
-
 APP = 'ppaurl'
 APPNAME = 'ppaurl'
 APP_CONF = APP + '.conf'
-CONFIG_DIR = os.path.join(os.path.expanduser('~'), '.config')
-CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
-CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APP_CONF)
 # check if running from source
 if is_package():
     ROOTDIR = '/opt/extras.ubuntu.com/ppaurl'
@@ -52,23 +39,16 @@ if is_package():
     LANGDIR = os.path.join(ROOTDIR, 'locale-langpack')
     BINDIR = os.path.join(ROOTDIR, 'bin')
     ICONDIR = os.path.join(ROOTDIR, 'share/icons')
-    PIXMAPDIR = os.path.join(ROOTDIR, 'share/pixmaps')
-    SOCIALDIR = ICONDIR
     CHANGELOG = os.path.join(APPDIR, 'changelog')
 else:
     ROOTDIR = os.path.dirname(__file__)
     LANGDIR = os.path.normpath(os.path.join(ROOTDIR, '../template1'))
     APPDIR = ROOTDIR
     ICONDIR = os.path.normpath(os.path.join(ROOTDIR, '../data/icons'))
-    PIXMAPDIR = ICONDIR
-    SOCIALDIR = os.path.normpath(os.path.join(ROOTDIR, '../data/social'))
     DEBIANDIR = os.path.normpath(os.path.join(ROOTDIR, '../debian'))
     CHANGELOG = os.path.join(DEBIANDIR, 'changelog')
 #
 ICON = os.path.join(ICONDIR, 'ppaurl.svg')
-BITCOIN_LOGO = os.path.join(ICONDIR, 'bitcoin.png')
-FLATTR_LOGO = os.path.join(ICONDIR, 'flattr.png')
-PAYPAL_LOGO = os.path.join(ICONDIR, 'paypal.png')
 #
 f = open(CHANGELOG, 'r')
 line = f.readline()

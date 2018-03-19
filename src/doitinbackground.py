@@ -19,33 +19,42 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import gi
+try:
+    gi.require_version('GObject', '2.0')
+    gi.require_version('GLib', '2.0')
+except Exception as e:
+    print(e)
+    exit(1)
 from gi.repository import GObject
-from idleobject import IdleObject
+from gi.repository import GLib
 from threading import Thread
 import subprocess
 import os
 import shlex
-import sys
-from threading import Thread
 import time
 
 
-class DoItInBackground(IdleObject, Thread):
+class DoItInBackground(GObject.GObject, Thread):
     __gsignals__ = {
-        'started': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()),
+        'started': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (int, )),
         'ended': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (bool,)),
         'done_one': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE,
                      (str,)),
+        'stopped': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()),
     }
 
     def __init__(self, printer, commands):
-        IdleObject.__init__(self)
+        GObject.GObject.__init__(self)
         Thread.__init__(self)
         self.printer = printer
         self.commands = commands
         self.stopit = False
         self.ok = True
         self.daemon = True
+
+    def emit(self, *args):
+        GLib.idle_add(GObject.GObject.emit, self, *args)
 
     def execute(self, command):
         self.printer.feed(('$ %s\n\r' % (command)).encode())
@@ -73,19 +82,20 @@ class DoItInBackground(IdleObject, Thread):
                 self.printer.feed(output.encode())
                 self.ok = False
         except OSError as e:
-            print('Execution failed:', e, file=sys.stderr)
+            print('Execution failed:', e)
             self.ok = False
 
     def stop(self, *args):
         self.stopit = True
 
     def run(self):
-        total = len(self.commands)
-        self.emit('started')
+        self.emit('started', len(self.commands))
         for index, command in enumerate(self.commands):
             if self.stopit is True:
-                break
+                self.emit('stopped')
+                return
             self.execute(command)
+            time.sleep(1)
             self.emit('done_one', command)
         self.emit('ended', self.ok)
 
